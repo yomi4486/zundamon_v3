@@ -1,4 +1,4 @@
-import os,discord,json,requests,io,re,queue,asyncio,datetime
+import os,discord,json,requests,io,re,queue,asyncio,datetime,sys
 from discord import app_commands
 from os.path import join, dirname
 from dotenv import load_dotenv
@@ -153,8 +153,30 @@ def seikei(text:str):
     ignore_list = re.findall(r"\|\|(.*?)\|\|",text,re.DOTALL)
     for e in ignore_list:
         text = text.replace(f"||{e}||","(秘密のメッセージ)")
+    code_list = re.findall(r"```(.*?)```",text,re.DOTALL)
+    for e in code_list:
+        text = text.replace(f"```py{e}```","Pythonコードスニペット").replace(f"```js{e}```","JSコードスニペット").replace(f"```rs{e}```","ラストコードスニペット").replace(f"```sh{e}```","シェルコードスニペット").replace(f"```{e}```","コードスニペット")
     if "wwwww" in text or "ｗｗｗｗｗ" in text:
         text = text.replace("ｗ","").replace("w","")
+    encode_dict = {
+        "wa":"わ","wo":"を","nn":"ん",
+        "jo":"じょ","ja":"じゃ","ju":"じゅ","je":"じぇ","tsu":"つ",
+        "nya":"にゃ","nyu":"にゅ","nyo":"にょ",
+        "rya":"りゃ","ryu":"りゅ","ryo":"りょ",
+        "sya":"しゃ","sha":"しゃ","syu":"しゅ","shu":"しゅ","syo":"しょ","sho":"しょ",
+        "la":"ぁ","xa":"ぁ","li":"ぃ","xi":"ぃ","lu":"ぅ","xu":"ぅ","le":"ぇ","xe":"ぇ","lo":"ぉ","xo":"ぉ",
+        "ka":"か","ki":"き","ku":"く","ke":"け","ko":"こ","ga":"が","gi":"ぎ","gu":"ぐ","ge":"げ","go":"ご",
+        "sa":"さ","si":"し","su":"す","se":"せ","so":"そ","za":"ざ","zi":"じ","ji":"じ","zu":"ず","ze":"ぜ","zo":"ぞ",
+        "ta":"た","ti":"ち","tu":"つ","te":"て","to":"と","da":"だ","di":"ぢ","du":"づ","de":"で","do":"ど",
+        "na":"な","ni":"に","nu":"ぬ","ne":"ね","no":"の","ba":"ば","bi":"び","bu":"ぶ","be":"べ","bo":"ぼ","pa":"ぱ","pi":"ぴ","pu":"ぷ","pe":"ぺ","po":"ぽ",
+        "ma":"ま","mi":"み","mu":"む","me":"め","mo":"も",
+        "ya":"や","yu":"ゆ","yo":"よ",
+        "ha":"は","hi":"ひ","hu":"ふ","he":"へ","ho":"ほ",
+        "a":"あ","i":"い","u":"う","e":"え","o":"お",
+        "n":"ん","-":"ー"
+    }
+    for i in encode_dict:
+        text = text.replace(i,encode_dict[i])
     return text
 
 def yomiage(text:str,mode:int=1,speed:float=1.0):
@@ -191,6 +213,20 @@ async def on_ready():
     print('{0.user}'.format(client) ,"がログインしました")
     await client.change_presence(activity = discord.CustomActivity(name=str('👉 /help'), type=1))
     await tree.sync()#スラッシュコマンドを同期
+    if not len(sys.argv) == 1:
+        if sys.argv[1] == "update":
+            if os.path.exists("update.txt"):
+                with open("update.txt","r",encoding="utf-8") as f:
+                    update_text = f.read()
+                if not len(update_text) == 0:
+                    guild = client.guilds
+                    for g in guild:
+                        try:
+                            await g.system_channel.send(update_text)
+                        except Exception as e:
+                            print(f"{g.name}への通知に失敗しました。: {e}")
+            else:
+                print("update.txtが見つかりません。")
 
     while True:
         global reminde_json
@@ -230,6 +266,8 @@ async def on_message(message):
         return
     
     text = guild_dict_translate(base_text=f"{message.content}",id=f"{message.guild.id}")
+    if len(text) > 500:
+        return
     global channel,play_queue,voice_mode,voice_speed
     if message.guild.voice_client is None:return
     if f"{message.guild.id}" in voice_mode:
@@ -280,7 +318,7 @@ async def on_voice_state_update(member, before, after): # 入退室読み上げ
                 await play_next()
 
 @tree.command(name="join",description="VCに参加するのだ")
-async def test_command(interaction: discord.Interaction):
+async def join_command(interaction: discord.Interaction):
     global channel
     if interaction.user.voice is None:
         await interaction.response.send_message("<:zunda:1277689238632267848> 先にVCに参加してほしいのだ",silent=True)
@@ -297,7 +335,7 @@ async def test_command(interaction: discord.Interaction):
         return
 
 @tree.command(name="bye",description="VCから退出するのだ")
-async def test_command(interaction: discord.Interaction):
+async def bye_command(interaction: discord.Interaction):
     global channel
     if interaction.guild.voice_client is None:
         await interaction.response.send_message("既に抜けてるのだ",silent=True)
@@ -310,7 +348,7 @@ async def test_command(interaction: discord.Interaction):
             await interaction.response.send_message("<:zunda:1277689238632267848> このコマンドは`/join`を使ったチャンネルで実行してほしいのだ！",silent=True)
     
 @tree.command(name="dict",description="特定の単語の文字列を矯正できます。")
-async def test_command(interaction: discord.Interaction,書き:str,読み:str):
+async def dict_command(interaction: discord.Interaction,書き:str,読み:str):
     書き = 書き.lower()
     読み = 読み.lower()
     if 書き==読み:
@@ -331,7 +369,7 @@ async def test_command(interaction: discord.Interaction,書き:str,読み:str):
     await interaction.response.send_message(content=f"<:zunda:1277689238632267848> 「{書き}」の読み方を「{読み}」に{action}したのだ！")
 
 @tree.command(name="delete_dict",description="dictコマンドで登録した言葉を辞書から削除できるのだ")
-async def test_command(interaction: discord.Interaction,書き:str):
+async def delete_dict(interaction: discord.Interaction,書き:str):
     書き = 書き.lower()
     with open("./guild_dict.json",encoding="utf-8",mode="r") as f:
         guild_dict = dict(json.load(f))
@@ -347,8 +385,43 @@ async def test_command(interaction: discord.Interaction,書き:str):
     else:
         await interaction.response.send_message(content=f"<:zunda:1277689238632267848> 「{書き}」は辞書に存在しないのだ",ephemeral=True,delete_after=5)
 
+@tree.command(name="ignore",description="特定の文字列が含まれていた場合に読み上げをスキップするのだ。もう一度同じ文字を指定すると削除できるのだ")
+async def ignore(interaction: discord.Interaction,文字:str):
+    文字 = 文字.lower()
+    with open("./ignore.json",encoding="utf-8",mode="r") as f:
+        ignore = dict(json.load(f))
+    if not f'{interaction.guild_id}' in ignore:
+        ignore.update({f'{interaction.guild_id}':[]})
+    if not f"{文字}" in ignore[f'{interaction.guild_id}']:
+        ignore[f'{interaction.guild_id}'].append(f"{文字}")
+        updated_json = json.dumps(ignore, indent=4,ensure_ascii = False)
+        with open('./ignore.json', 'w',encoding="utf-8") as file:
+            file.write(updated_json)
+        await interaction.response.send_message(content=f"<:zunda:1277689238632267848> 「{文字}」をスキップ対象に設定したのだ")
+    else:
+        ignore[f'{interaction.guild_id}'].pop(f"{文字}")
+        updated_json = json.dumps(ignore, indent=4,ensure_ascii = False)
+        with open('./ignore.json', 'w',encoding="utf-8") as file:
+            file.write(updated_json)
+        await interaction.response.send_message(content=f"<:zunda:1277689238632267848> 「{文字}」をスキップ対象から削除したのだ")
+
+@tree.command(name="show_ignore",description="スキップ対象の文字列をすべて表示するのだ")
+async def show_ignore(interaction: discord.Interaction):
+    with open("./ignore.json",encoding="utf-8",mode="r") as f:
+        ignore = dict(json.load(f))
+    if (not f'{interaction.guild_id}' in ignore):
+        await interaction.response.send_message(content=f"<:zunda:1277689238632267848> このサーバーではスキップ対象の文字が設定されていないのだ。",ephemeral=True)
+        return
+    if len(ignore[f'{interaction.guild_id}']) == 0:
+        await interaction.response.send_message(content=f"<:zunda:1277689238632267848> このサーバーではスキップ対象の文字が1つも設定されていないのだ。",ephemeral=True)
+        return
+    ignore_list = ""
+    for l in ignore[f'{interaction.guild_id}']:
+        ignore_list += f"{l}\n"
+        await interaction.response.send_message(content=f"<:zunda:1277689238632267848> スキップ対象一覧なのだ\n```\n{ignore_list}```")
+
 @tree.command(name="preview_dict",description="あなたのサーバーにおける辞書を表示します")
-async def test_command(interaction: discord.Interaction):
+async def preview_dict(interaction: discord.Interaction):
     with open("./guild_dict.json",encoding="utf-8",mode="r") as f:
         guild_dict = dict(json.load(f))
     if not f'{interaction.guild_id}' in guild_dict:

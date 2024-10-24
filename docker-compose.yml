@@ -1,0 +1,16 @@
+services:
+  voicevox-engine:
+    platform: linux/x86_64
+    container_name: voicevox-engine
+    image: voicevox/voicevox_engine:nvidia-ubuntu20.04-latest
+    restart: always
+    ports:
+      - "50021:50021"
+    tty: true
+    deploy: # GPUを使用する場合に必要、使用しない場合はこれを削除し、imageをCPU版に変更。
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
