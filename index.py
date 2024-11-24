@@ -105,7 +105,8 @@ class RemindeModal(discord.ui.Modal):
 
 async def play_next():
     if not play_queue.empty():
-        
+        guild:discord.Guild
+        source:bytes
         guild,source = play_queue.get()
         if not guild.voice_client is None:
             try:
@@ -212,7 +213,6 @@ async def yomiage(text:str,mode:int=1,speed:float=1.0):
         print(f"合成音声に失敗: {e}")
         return 1
 
-
 @client.event
 async def on_ready():
     print('{0.user}'.format(client) ,"がログインしました")
@@ -262,7 +262,7 @@ async def on_ready():
         await asyncio.sleep(5)
 
 @client.event
-async def on_message(message):
+async def on_message(message:discord.Message):
     if message.guild:
         print(f"[{message.guild.name}/{message.channel.name}] {message.author.display_name} ({message.author.name}) : {message.content}")
     if message.author.bot:return
@@ -295,7 +295,7 @@ async def on_message(message):
             await play_next()
 
 @client.event
-async def on_voice_state_update(member, before, after): # 入退室読み上げ
+async def on_voice_state_update(member:discord.Member, before:discord.VoiceClient, after:discord.VoiceClient): # 入退室読み上げ
     if member.bot:return
     if before.channel != after.channel:
         global voice_mode,voice_speed
@@ -478,6 +478,8 @@ async def test_command(interaction: discord.Interaction):
     embed.add_field(name='`/dict`', value='サーバー固有の読ませ方をしたい言葉を登録できるのだ。')
     embed.add_field(name='`/delete_dict`', value='登録した言葉を辞書から削除できるのだ。')
     embed.add_field(name='`/preview_dict`', value='作成した辞書を表示できるのだ。')
+    embed.add_field(name='`/reminder`', value='特定の時間になったら指定されたメッセージを通知するのだ。')
+    embed.add_field(name='`/force-leave`', value='BotがVCから退出できなくなったときに使用してほしいのだ。それでも解決しなければ、管理者に連絡してほしいのだ。')
     view = MyView(url="https://voicevox.hiroshiba.jp/term/",label="利用規約")
     await interaction.response.send_message(embed=embed,ephemeral=True,view=view)
 
