@@ -1,4 +1,4 @@
-import os,discord,json,requests,io,re,queue,asyncio,datetime,sys
+import os,discord,json,requests,io,re,queue,asyncio,datetime,sys,logging
 from discord import app_commands
 from os.path import join, dirname
 from dotenv import load_dotenv
@@ -14,6 +14,16 @@ extractor = URLExtract() # URL読み上げると長いから抜き出すため�
 load_dotenv(verbose=True)
 dotenv_path = join(dirname(__file__), '.env')
 load_dotenv(dotenv_path)
+
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="%(asctime)s %(levelname)s %(name)s %(message)s",
+    datefmt="[%X]",
+    filename="./main.log",
+    encoding="utf-8"
+)
+
+logger = logging.getLogger(__name__)
 
 TOKEN = os.environ.get("BOT_TOKEN")
 APPLICATION_ID = os.environ.get("APPLICATION_ID") # 起動自体には必要ないが、メンションで反応させる際に必要
@@ -78,12 +88,10 @@ class RemindeModal(discord.ui.Modal):
 
     
     async def on_submit(self, interaction: discord.Interaction):
-        print("ok")
         day_time = self.day.value.split("/")
         time = self.time.value.split(":")
         t = datetime.datetime.now()
         if len(day_time) != 3 or len(time) != 2:
-            print("A")
             await interaction.response.send_message("時間のフィールドが不正なのだ。")
             return
         date_format = "%Y/%m/%d/%H:%M"
@@ -111,8 +119,9 @@ async def play_next():
         if not guild.voice_client is None:
             try:
                 guild.voice_client.play(discord.FFmpegPCMAudio(source=io.BytesIO(source),pipe=True), after=lambda e: asyncio.run_coroutine_threadsafe(play_next(), client.loop))
-            except:
-                pass
+            except Exception as e:
+                logger.error(f"play_next error: {e}")
+
 def guild_dict_translate(base_text:str,id:str):
     """
     base_text: ベーステキスト
@@ -210,12 +219,12 @@ async def yomiage(text:str,mode:int=1,speed:float=1.0):
         response.raise_for_status()
         return response.content
     except requests.exceptions.RequestException as e:
-        print(f"合成音声に失敗: {e}")
+        logger.error(f"合成音声に失敗: {e}")
         return 1
 
 @client.event
 async def on_ready():
-    print('{0.user}'.format(client) ,"がログインしました")
+    logger.info(f'{client.user}がログインしました')
     await client.change_presence(activity = discord.CustomActivity(name=str('👉 /help'), type=1))
     await tree.sync()#スラッシュコマンドを同期
     if not len(sys.argv) == 1:
@@ -229,9 +238,9 @@ async def on_ready():
                         try:
                             await g.system_channel.send(update_text)
                         except Exception as e:
-                            print(f"{g.name}への通知に失敗しました。: {e}")
+                            logger.warning(f"{g.name}への通知に失敗しました。: {e}")
             else:
-                print("update.txtが見つかりません。")
+                logger.info("update.txtが見つかりません。")
 
     while True:
         global reminde_json
@@ -264,7 +273,7 @@ async def on_ready():
 @client.event
 async def on_message(message:discord.Message):
     if message.guild:
-        print(f"[{message.guild.name}/{message.channel.name}] {message.author.display_name} ({message.author.name}) : {message.content}")
+        logger.info(f"[{message.guild.name}/{message.channel.name}] {message.author.display_name} ({message.author.name}) : {message.content}")
     if message.author.bot:return
     if message.content.replace(" ","") == f"<@{APPLICATION_ID}>":
         await message.reply("<:zunda:1277689238632267848> 使い方を知りたい場合は`/help`を実行してほしいのだ！")

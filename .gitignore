@@ -3,3 +3,4 @@ word_dict.json
 ignore.json
 bep-eng.dic
 .env
+*.log
