@@ -105,9 +105,13 @@ class RemindeModal(discord.ui.Modal):
 
 async def play_next():
     if not play_queue.empty():
+        
         guild,source = play_queue.get()
-        guild.voice_client.play(discord.FFmpegPCMAudio(source=io.BytesIO(source),pipe=True), after=lambda e: asyncio.run_coroutine_threadsafe(play_next(), client.loop))
-
+        if not guild.voice_client is None:
+            try:
+                guild.voice_client.play(discord.FFmpegPCMAudio(source=io.BytesIO(source),pipe=True), after=lambda e: asyncio.run_coroutine_threadsafe(play_next(), client.loop))
+            except:
+                pass
 def guild_dict_translate(base_text:str,id:str):
     """
     base_text: ベーステキスト
@@ -158,28 +162,28 @@ def seikei(text:str):
         text = text.replace(f"```py{e}```","Pythonコードスニペット").replace(f"```js{e}```","JSコードスニペット").replace(f"```rs{e}```","ラストコードスニペット").replace(f"```sh{e}```","シェルコードスニペット").replace(f"```{e}```","コードスニペット")
     if "wwwww" in text or "ｗｗｗｗｗ" in text:
         text = text.replace("ｗ","").replace("w","")
-    encode_dict = {
-        "wa":"わ","wo":"を","nn":"ん",
-        "jo":"じょ","ja":"じゃ","ju":"じゅ","je":"じぇ","tsu":"つ",
-        "nya":"にゃ","nyu":"にゅ","nyo":"にょ",
-        "rya":"りゃ","ryu":"りゅ","ryo":"りょ",
-        "sya":"しゃ","sha":"しゃ","syu":"しゅ","shu":"しゅ","syo":"しょ","sho":"しょ",
-        "la":"ぁ","xa":"ぁ","li":"ぃ","xi":"ぃ","lu":"ぅ","xu":"ぅ","le":"ぇ","xe":"ぇ","lo":"ぉ","xo":"ぉ",
-        "ka":"か","ki":"き","ku":"く","ke":"け","ko":"こ","ga":"が","gi":"ぎ","gu":"ぐ","ge":"げ","go":"ご",
-        "sa":"さ","si":"し","su":"す","se":"せ","so":"そ","za":"ざ","zi":"じ","ji":"じ","zu":"ず","ze":"ぜ","zo":"ぞ",
-        "ta":"た","ti":"ち","tu":"つ","te":"て","to":"と","da":"だ","di":"ぢ","du":"づ","de":"で","do":"ど",
-        "na":"な","ni":"に","nu":"ぬ","ne":"ね","no":"の","ba":"ば","bi":"び","bu":"ぶ","be":"べ","bo":"ぼ","pa":"ぱ","pi":"ぴ","pu":"ぷ","pe":"ぺ","po":"ぽ",
-        "ma":"ま","mi":"み","mu":"む","me":"め","mo":"も",
-        "ya":"や","yu":"ゆ","yo":"よ",
-        "ha":"は","hi":"ひ","hu":"ふ","he":"へ","ho":"ほ",
-        "a":"あ","i":"い","u":"う","e":"え","o":"お",
-        "n":"ん","-":"ー"
-    }
-    for i in encode_dict:
-        text = text.replace(i,encode_dict[i])
+    # encode_dict = {
+    #     "wa":"わ","wo":"を","nn":"ん",
+    #     "jo":"じょ","ja":"じゃ","ju":"じゅ","je":"じぇ","tsu":"つ",
+    #     "nya":"にゃ","nyu":"にゅ","nyo":"にょ",
+    #     "rya":"りゃ","ryu":"りゅ","ryo":"りょ",
+    #     "sya":"しゃ","sha":"しゃ","syu":"しゅ","shu":"しゅ","syo":"しょ","sho":"しょ",
+    #     "la":"ぁ","xa":"ぁ","li":"ぃ","xi":"ぃ","lu":"ぅ","xu":"ぅ","le":"ぇ","xe":"ぇ","lo":"ぉ","xo":"ぉ",
+    #     "ka":"か","ki":"き","ku":"く","ke":"け","ko":"こ","ga":"が","gi":"ぎ","gu":"ぐ","ge":"げ","go":"ご",
+    #     "sa":"さ","si":"し","su":"す","se":"せ","so":"そ","za":"ざ","zi":"じ","ji":"じ","zu":"ず","ze":"ぜ","zo":"ぞ",
+    #     "ta":"た","ti":"ち","tu":"つ","te":"て","to":"と","da":"だ","di":"ぢ","du":"づ","de":"で","do":"ど",
+    #     "na":"な","ni":"に","nu":"ぬ","ne":"ね","no":"の","ba":"ば","bi":"び","bu":"ぶ","be":"べ","bo":"ぼ","pa":"ぱ","pi":"ぴ","pu":"ぷ","pe":"ぺ","po":"ぽ",
+    #     "ma":"ま","mi":"み","mu":"む","me":"め","mo":"も",
+    #     "ya":"や","yu":"ゆ","yo":"よ",
+    #     "ha":"は","hi":"ひ","hu":"ふ","he":"へ","ho":"ほ",
+    #     "a":"あ","i":"い","u":"う","e":"え","o":"お",
+    #     "n":"ん","-":"ー"
+    # }
+    # for i in encode_dict:
+    #     text = text.replace(i,encode_dict[i])
     return text
 
-def yomiage(text:str,mode:int=1,speed:float=1.0):
+async def yomiage(text:str,mode:int=1,speed:float=1.0):
     if len(text) == 0:return 0
     print(f"[ {text} ] ==> VOICEVOX API")
     query = {
@@ -203,10 +207,11 @@ def yomiage(text:str,mode:int=1,speed:float=1.0):
             timeout=(1, 15.0)
         )
         response.raise_for_status()
+        return response.content
     except requests.exceptions.RequestException as e:
         print(f"合成音声に失敗: {e}")
         return 1
-    return response.content
+
 
 @client.event
 async def on_ready():
@@ -249,7 +254,7 @@ async def on_ready():
                     else:
                         speed = 1.0
                     global play_queue
-                    source = yomiage(text=seikei(i["content"]),mode=mode,speed=speed)
+                    source = await yomiage(text=seikei(i["content"]),mode=mode,speed=speed)
                     play_queue.put((channel.guild,source))
                     if not channel.guild.voice_client.is_playing():
                         await play_next()
@@ -279,7 +284,7 @@ async def on_message(message):
     else:
         speed = 1.0
     if f"{message.channel.id}" in channel:
-        source = yomiage(text=seikei(text),mode=mode,speed=speed)
+        source = await yomiage(text=seikei(text),mode=mode,speed=speed)
         if source == 0:
             return
         elif source == 1:
@@ -305,9 +310,9 @@ async def on_voice_state_update(member, before, after): # 入退室読み上げ
         else:
             speed = 1.0
         if before.channel is None:
-            source = yomiage(text=seikei(f"{guild_dict_translate(base_text=f'{member.display_name}',id=f'{member.guild.id}')}が参加したのだ！"),mode=mode,speed=speed)
+            source = await yomiage(text=seikei(f"{guild_dict_translate(base_text=f'{member.display_name}',id=f'{member.guild.id}')}が参加したのだ！"),mode=mode,speed=speed)
         elif after.channel is None:
-            source = yomiage(text=seikei(f"{guild_dict_translate(base_text=f'{member.display_name}',id=f'{member.guild.id}')}が退出したのだ！"),mode=mode,speed=speed)
+            source = await yomiage(text=seikei(f"{guild_dict_translate(base_text=f'{member.display_name}',id=f'{member.guild.id}')}が退出したのだ！"),mode=mode,speed=speed)
         else: # ほかのVCに移動したとき
             source = 0
         if source == 0 or source == 1:return
@@ -327,6 +332,8 @@ async def join_command(interaction: discord.Interaction):
         await interaction.user.voice.channel.connect(self_deaf=True) # ボイスチャンネルに接続する
         await interaction.response.send_message("<:zunda:1277689238632267848> 参加したのだ！",silent=True)
         channel.append(f"{interaction.channel_id}")
+        if interaction.channel_id != interaction.user.voice.channel.id:
+            channel.append(f"{interaction.user.voice.channel.id}")
     elif interaction.guild.voice_client:
         await interaction.response.send_message("<:zunda:1277689238632267848> 既に参加してるのだ！",silent=True)
         return
@@ -342,11 +349,33 @@ async def bye_command(interaction: discord.Interaction):
     elif interaction.guild.voice_client:
         if f"{interaction.channel_id}" in channel:
             channel.remove(f"{interaction.channel_id}")
+            try:
+                channel.remove(f"{interaction.user.voice.channel.id}")
+            except:
+                pass
             await interaction.guild.voice_client.disconnect()
             await interaction.response.send_message("<:zunda:1277689238632267848> 退出するのだ",silent=True)
         else:
             await interaction.response.send_message("<:zunda:1277689238632267848> このコマンドは`/join`を使ったチャンネルで実行してほしいのだ！",silent=True)
     
+@tree.command(name="force-leave",description="強制的にVCから退出するのだ（/byeが動作しなくなったときにのみ使用してください）")
+async def force_leave_command(interaction: discord.Interaction):
+    global channel
+    if interaction.guild.voice_client is None:
+        await interaction.response.send_message("既に抜けてるのだ",silent=True)
+    elif interaction.guild.voice_client:
+
+        try:
+            try:
+                channel.remove(f"{interaction.channel_id}")
+                channel.remove(f"{interaction.user.voice.channel.id}")
+            except:
+                pass
+            await interaction.guild.voice_client.disconnect()
+            await interaction.response.send_message("<:zunda:1277689238632267848> 退出するのだ",silent=True)
+        except:
+            await interaction.response.send_message(":warning: 退出処理に失敗しました。管理者に連絡してください。",silent=True)
+
 @tree.command(name="dict",description="特定の単語の文字列を矯正できます。")
 async def dict_command(interaction: discord.Interaction,書き:str,読み:str):
     書き = 書き.lower()
