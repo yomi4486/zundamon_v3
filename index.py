@@ -282,6 +282,12 @@ async def on_message(message:discord.Message):
     text = guild_dict_translate(base_text=f"{message.content}",id=f"{message.guild.id}")
     if len(text) > 500:
         return
+    with open("./ignore.json",encoding="utf-8",mode="r") as f:
+        ignore = dict(json.load(f))
+    if f"{message.guild.id}" in ignore:
+        for i in ignore[f"{message.guild.id}"]:
+            if i in text:
+                return
     global channel,play_queue,voice_mode,voice_speed
     if message.guild.voice_client is None:return
     if f"{message.guild.id}" in voice_mode:
