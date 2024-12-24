@@ -1,9 +1,9 @@
-import os,discord,json,requests,io,re,queue,asyncio,datetime,sys,logging
+import os,discord,json,requests,io,re,asyncio,datetime,sys,logging
 from discord import app_commands
 from os.path import join, dirname
 from dotenv import load_dotenv
 from urlextract import URLExtract
-play_queue = queue.Queue() #読み上げ途中に来たリクエストはここにため込んでおく
+play_queue = asyncio.Queue() #読み上げ途中に来たリクエストはここにため込んでおく
 channel = [] # 読み上げ対象のチャンネルのIDを格納しておく
 voice_mode = {}
 voice_speed = {}
@@ -115,7 +115,7 @@ async def play_next():
     if not play_queue.empty():
         guild:discord.Guild
         source:bytes
-        guild,source = play_queue.get()
+        guild,source = await play_queue.get()
         if not guild.voice_client is None:
             try:
                 guild.voice_client.play(discord.FFmpegPCMAudio(source=io.BytesIO(source),pipe=True), after=lambda e: asyncio.run_coroutine_threadsafe(play_next(), client.loop))
@@ -264,7 +264,7 @@ async def on_ready():
                         speed = 1.0
                     global play_queue
                     source = await yomiage(text=seikei(i["content"]),mode=mode,speed=speed)
-                    play_queue.put((channel.guild,source))
+                    await play_queue.put((channel.guild,source))
                     if not channel.guild.voice_client.is_playing():
                         await play_next()
             reminde_json.pop(f"{dt_now.year}/{dt_now.month}/{dt_now.day}/{(dt_now.hour*60)+(dt_now.minute)}")
@@ -299,7 +299,7 @@ async def on_message(message:discord.Message):
         elif source == 1:
             await message.reply(":octagonal_sign: 音声合成に失敗したのだ <:zunda:1277689238632267848>",silent=True,delete_after=5)
             return
-        play_queue.put((message.guild,source))
+        await play_queue.put((message.guild,source))
         if not message.guild.voice_client.is_playing():
             await play_next()
 
@@ -326,7 +326,7 @@ async def on_voice_state_update(member:discord.Member, before:discord.VoiceClien
             source = 0
         if source == 0 or source == 1:return
         global play_queue
-        play_queue.put((member.guild,source))
+        await play_queue.put((member.guild,source))
         if not member.guild.voice_client is None:
             if not member.guild.voice_client.is_playing():
                 await play_next()
