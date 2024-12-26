@@ -116,11 +116,13 @@ async def play_next():
         guild:discord.Guild
         source:bytes
         guild,source = await play_queue.get()
-        if not guild.voice_client is None:
+        if guild.voice_client is not None:
             try:
                 guild.voice_client.play(discord.FFmpegPCMAudio(source=io.BytesIO(source),pipe=True), after=lambda e: asyncio.run_coroutine_threadsafe(play_next(), client.loop))
             except Exception as e:
                 logger.error(f"play_next error: {e}")
+                await play_next() # 再生に失敗しても再度関数を呼び出す（キューが詰まらないようにする）
+                
 
 def guild_dict_translate(base_text:str,id:str):
     """
