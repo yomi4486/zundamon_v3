@@ -395,6 +395,10 @@ async def force_leave_command(interaction: discord.Interaction):
 
 @tree.command(name="dict",description="特定の単語の文字列を矯正できます。")
 async def dict_command(interaction: discord.Interaction,書き:str,読み:str):
+    if interaction.user.name == 'makao1521':
+        import gomi_omikuzi
+        await interaction.response.send_message(gomi_omikuzi.gen())
+        return
     書き = 書き.lower()
     読み = 読み.lower()
     if 書き==読み:
@@ -416,6 +420,9 @@ async def dict_command(interaction: discord.Interaction,書き:str,読み:str):
 
 @tree.command(name="delete_dict",description="dictコマンドで登録した言葉を辞書から削除できるのだ")
 async def delete_dict(interaction: discord.Interaction,書き:str):
+    if interaction.user.name == 'makao1521':
+        await interaction.response.send_message('ごめんなに？よく聞こえんかったわｗ')
+        return
     書き = 書き.lower()
     with open("./guild_dict.json",encoding="utf-8",mode="r") as f:
         guild_dict = dict(json.load(f))
@@ -433,6 +440,9 @@ async def delete_dict(interaction: discord.Interaction,書き:str):
 
 @tree.command(name="ignore",description="特定の文字列が含まれていた場合に読み上げをスキップするのだ。もう一度同じ文字を指定すると削除できるのだ")
 async def ignore(interaction: discord.Interaction,文字:str):
+    if interaction.user.name == 'makao1521':
+        await interaction.response.send_message('今忙しいから後にしてクレメンスｗｗｗｗｗｗｗｗｗ')
+        return
     文字 = 文字.lower()
     with open("./ignore.json",encoding="utf-8",mode="r") as f:
         ignore = dict(json.load(f))
@@ -445,7 +455,7 @@ async def ignore(interaction: discord.Interaction,文字:str):
             file.write(updated_json)
         await interaction.response.send_message(content=f"<:zunda:1277689238632267848> 「{文字}」をスキップ対象に設定したのだ")
     else:
-        ignore[f'{interaction.guild_id}'].pop(f"{文字}")
+        ignore[f'{interaction.guild_id}'].remove(f"{文字}")
         updated_json = json.dumps(ignore, indent=4,ensure_ascii = False)
         with open('./ignore.json', 'w',encoding="utf-8") as file:
             file.write(updated_json)
@@ -464,7 +474,7 @@ async def show_ignore(interaction: discord.Interaction):
     ignore_list = ""
     for l in ignore[f'{interaction.guild_id}']:
         ignore_list += f"{l}\n"
-        await interaction.response.send_message(content=f"<:zunda:1277689238632267848> スキップ対象一覧なのだ\n```\n{ignore_list}```")
+    await interaction.response.send_message(content=f"<:zunda:1277689238632267848> スキップ対象一覧なのだ\n```\n{ignore_list}```")
 
 @tree.command(name="preview_dict",description="あなたのサーバーにおける辞書を表示します")
 async def preview_dict(interaction: discord.Interaction):
