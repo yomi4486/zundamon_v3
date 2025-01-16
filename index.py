@@ -110,6 +110,29 @@ class RemindeModal(discord.ui.Modal):
         reminde_json.update({now_time_recode:[]})
         reminde_json[f"{now_time_recode}"].append(new_dict)
         return
+    
+class IssueModal(discord.ui.Modal):
+    def __init__(self,select_type:int):
+        super().__init__(title=f"{['起こっている問題','要望'][select_type]}を詳しく教えてほしいのだ",timeout=None,custom_id="issue")
+        self.content = discord.ui.TextInput(
+            label="内容",
+            style=discord.TextStyle.paragraph,
+            required=True,
+            max_length=2000,
+            row=2,
+            custom_id="content"
+        )
+        self.select_type=select_type
+        self.add_item(self.content)
+    
+    async def on_submit(self, interaction: discord.Interaction):
+        with open(f"./issues/{['bug','documents'][self.select_type]}.txt","a",encoding="utf-8") as f:
+            f.write(f"\n{interaction.user.name}\n{self.content.value}")
+        embed = discord.Embed(title="問題の報告が完了したのだ。",description="")
+        embed.add_field(name=f"カテゴリ：{['バグ','要望'][self.select_type]}",value="")
+        embed.add_field(name='内容', inline=False ,value=self.content.value)
+        await interaction.response.send_message(embed=embed,ephemeral=True)
+        return
 
 async def play_next():
     if not play_queue.empty():
@@ -549,4 +572,13 @@ async def food_slash(interaction: discord.Interaction):
         await interaction.response.send_message(content="このコマンドはサーバー限定です。",ephemeral=True)
         return
     await interaction.response.send_modal(RemindeModal())
+
+@tree.command(name="issue", description="Botに問題が発生したときにエラーの詳細を報告できるのだ。")
+@app_commands.describe(カテゴリ="速度を選択してほしいのだ")
+@app_commands.choices(カテゴリ=[
+    discord.app_commands.Choice(name="バグ", value=0),
+    discord.app_commands.Choice(name="要望", value=1),
+])
+async def food_slash(interaction: discord.Interaction,カテゴリ: discord.app_commands.Choice[int]):
+    await interaction.response.send_modal(IssueModal(select_type=カテゴリ.value))
 client.run(TOKEN)
