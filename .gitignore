@@ -4,3 +4,4 @@ ignore.json
 bep-eng.dic
 .env
 *.log
+__pycache__

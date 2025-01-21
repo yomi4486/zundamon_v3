@@ -86,7 +86,6 @@ class RemindeModal(discord.ui.Modal):
         )
         self.add_item(self.content)
 
-    
     async def on_submit(self, interaction: discord.Interaction):
         day_time = self.day.value.split("/")
         time = self.time.value.split(":")
@@ -146,7 +145,6 @@ async def play_next():
                 logger.error(f"play_next error: {e}")
                 await play_next() # 再生に失敗しても再度関数を呼び出す（キューが詰まらないようにする）
                 
-
 def guild_dict_translate(base_text:str,id:str):
     """
     base_text: ベーステキスト
@@ -174,7 +172,7 @@ def seikei(text:str):
     url = extractor.find_urls(text)
     for i in url:
         text = text.replace(f"{i}","URL ")
-    text = text.replace("\n"," ").replace("`","").replace("_"," ").replace("-"," ").replace("("," ").replace(")"," ").replace("{"," ").replace("}"," ").replace("["," ").replace("]"," ").replace('"'," ").replace("/","")
+    text = text.replace("\n"," ").replace("_"," ").replace("-"," ").replace("("," ").replace(")"," ").replace("{"," ").replace("}"," ").replace("["," ").replace("]"," ").replace('"'," ").replace("/","")
     text = eng_to_kana(text) # 英語をカタカナ英語に変換
     with open('./word_dict.json', 'r',encoding="utf-8") as file:
         word_dict = dict(json.load(file))
@@ -574,11 +572,12 @@ async def food_slash(interaction: discord.Interaction):
     await interaction.response.send_modal(RemindeModal())
 
 @tree.command(name="issue", description="Botに問題が発生したときにエラーの詳細を報告できるのだ。")
-@app_commands.describe(カテゴリ="速度を選択してほしいのだ")
+@app_commands.describe(カテゴリ="次から選択してほしいのだ")
 @app_commands.choices(カテゴリ=[
     discord.app_commands.Choice(name="バグ", value=0),
     discord.app_commands.Choice(name="要望", value=1),
 ])
 async def food_slash(interaction: discord.Interaction,カテゴリ: discord.app_commands.Choice[int]):
     await interaction.response.send_modal(IssueModal(select_type=カテゴリ.value))
+
 client.run(TOKEN)
