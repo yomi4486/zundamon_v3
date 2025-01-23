@@ -1,3 +1,4 @@
+.PHONY: run notice
 run:
 	python3 setup.py
 	python3 index.py
