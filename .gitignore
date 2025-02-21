@@ -5,3 +5,4 @@ bep-eng.dic
 .env
 *.log
 __pycache__
+issues/*

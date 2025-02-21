@@ -4,7 +4,7 @@ from os.path import join, dirname
 from dotenv import load_dotenv
 from urlextract import URLExtract
 play_queue = asyncio.Queue() #読み上げ途中に来たリクエストはここにため込んでおく
-channel = [] # 読み上げ対象のチャンネルのIDを格納しておく
+channel:list[str] = [] # 読み上げ対象のチャンネルのIDを格納しておく
 voice_mode = {}
 voice_speed = {}
 reminde_json = {}
@@ -244,6 +244,13 @@ async def yomiage(text:str,mode:int=1,speed:float=1.0):
     except requests.exceptions.RequestException as e:
         logger.error(f"合成音声に失敗: {e}")
         return 1
+
+@client.event
+async def on_disconnect():
+    channel.clear()
+    while not play_queue.empty:
+        play_queue.get()
+    print("インターネットの接続が切れました。状態を初期化します")
 
 @client.event
 async def on_ready():
@@ -512,8 +519,14 @@ async def preview_dict(interaction: discord.Interaction):
         res += f"{i}：{guild_dict[f'{interaction.guild_id}'][i]}\n"
     await interaction.response.send_message(f"### 書き：読み\n```{res}```",ephemeral=True)
 
+@tree.command(name="clear",description="キューを空にします。")
+async def clear_command(interaction: discord.Interaction):
+    while not play_queue.empty:
+        play_queue.get()
+    await interaction.response.send_message("キューを空にしました。")
+
 @tree.command(name="help",description="Botの説明をするのだ")
-async def test_command(interaction: discord.Interaction):
+async def help_command(interaction: discord.Interaction):
     embed = discord.Embed(title="使用方法",description="")
     embed.add_field(name='概要', inline=False ,value='`/join`を実行したテキストチャンネルのメッセージを参加したVCで読み上げるのだ！')
     embed.add_field(name='コマンド - 基本', inline=False ,value='')
@@ -528,6 +541,7 @@ async def test_command(interaction: discord.Interaction):
     embed.add_field(name='`/preview_dict`', value='作成した辞書を表示できるのだ。')
     embed.add_field(name='`/reminder`', value='特定の時間になったら指定されたメッセージを通知するのだ。')
     embed.add_field(name='`/force-leave`', value='BotがVCから退出できなくなったときに使用してほしいのだ。それでも解決しなければ、管理者に連絡してほしいのだ。')
+    embed.add_field(name='`/clear`', value='キューの中身を全て空にします')
     view = MyView(url="https://voicevox.hiroshiba.jp/term/",label="利用規約")
     await interaction.response.send_message(embed=embed,ephemeral=True,view=view)
 
