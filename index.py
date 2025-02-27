@@ -247,9 +247,12 @@ async def yomiage(text:str,mode:int=1,speed:float=1.0):
 
 @client.event
 async def on_disconnect():
-    channel.clear()
+    global channel,play_queue
     while not play_queue.empty:
         play_queue.get()
+    for i in channel:
+        await client.get_channel(int(i)).guild.voice_client.disconnect()
+    channel.clear()
     print("インターネットの接続が切れました。状態を初期化します")
 
 @client.event
