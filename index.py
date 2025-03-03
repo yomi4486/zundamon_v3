@@ -339,7 +339,13 @@ async def on_message(message:discord.Message):
             await message.reply(":octagonal_sign: 音声合成に失敗したのだ <:zunda:1277689238632267848>",silent=True,delete_after=5)
             return
         await play_queue.put((message.guild,source))
-        await play_next()
+        try:
+            if not message.guild.voice_client.is_playing():
+                await play_next()
+        except Exception as e:
+            print(e)
+            await play_next()
+        
 
 @client.event
 async def on_voice_state_update(member:discord.Member, before:discord.VoiceClient, after:discord.VoiceClient): # 入退室読み上げ
