@@ -351,14 +351,14 @@ async def on_message(message:discord.Message):
 @client.event
 async def on_voice_state_update(member:discord.Member, before:discord.VoiceClient, after:discord.VoiceClient): # 入退室読み上げ
     global channel,reserved_guild
-    print("ok!")
     if member.id == client.user.id and after.channel is None and f"{member.guild.id}" in reserved_guild:
-        print("OK")
         for i in reserved_guild[f"{member.guild.id}"]:
             try:
                 channel.remove(f"{i}")
             except:
                 pass
+    if not f"{member.guild.id}" in reserved_guild:return # 予約済みでないチャンネルでのアクションは無視
+
     if member.bot:return
     if before.channel != after.channel:
         global voice_mode,voice_speed
