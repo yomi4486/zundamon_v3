@@ -8,6 +8,7 @@ channel:list[str] = [] # 読み上げ対象のチャンネルのIDを格納し�
 voice_mode = {}
 voice_speed = {}
 reminde_json = {}
+reserved_guild = {}
 extractor = URLExtract() # URL読み上げると長いから抜き出すためのやつ
 
 # 環境変数の設定
@@ -349,6 +350,15 @@ async def on_message(message:discord.Message):
 
 @client.event
 async def on_voice_state_update(member:discord.Member, before:discord.VoiceClient, after:discord.VoiceClient): # 入退室読み上げ
+    global channel,reserved_guild
+    print("ok!")
+    if member.id == client.user.id and after.channel is None and f"{member.guild.id}" in reserved_guild:
+        print("OK")
+        for i in reserved_guild[f"{member.guild.id}"]:
+            try:
+                channel.remove(f"{i}")
+            except:
+                pass
     if member.bot:return
     if before.channel != after.channel:
         global voice_mode,voice_speed
@@ -377,7 +387,7 @@ async def on_voice_state_update(member:discord.Member, before:discord.VoiceClien
 
 @tree.command(name="join",description="VCに参加するのだ")
 async def join_command(interaction: discord.Interaction):
-    global channel
+    global channel,reserved_guild
     if interaction.user.voice is None:
         await interaction.response.send_message("<:zunda:1277689238632267848> 先にVCに参加してほしいのだ",silent=True)
         return
@@ -385,8 +395,10 @@ async def join_command(interaction: discord.Interaction):
         await interaction.user.voice.channel.connect(self_deaf=True) # ボイスチャンネルに接続する
         await interaction.response.send_message("<:zunda:1277689238632267848> 参加したのだ！",silent=True)
         channel.append(f"{interaction.channel_id}")
+        reserved_guild[f"{interaction.guild.id}"] = [f"{interaction.channel_id}"]
         if interaction.channel_id != interaction.user.voice.channel.id:
             channel.append(f"{interaction.user.voice.channel.id}")
+            reserved_guild[f"{interaction.guild.id}"].append(f"{interaction.user.voice.channel.id}")
     elif interaction.guild.voice_client:
         await interaction.response.send_message("<:zunda:1277689238632267848> 既に参加してるのだ！",silent=True)
         return
@@ -396,16 +408,13 @@ async def join_command(interaction: discord.Interaction):
 
 @tree.command(name="bye",description="VCから退出するのだ")
 async def bye_command(interaction: discord.Interaction):
-    global channel
+    global channel,reserved_guild
     if interaction.guild.voice_client is None:
         await interaction.response.send_message("既に抜けてるのだ",silent=True)
     elif interaction.guild.voice_client:
-        if f"{interaction.channel_id}" in channel:
-            channel.remove(f"{interaction.channel_id}")
-            try:
-                channel.remove(f"{interaction.user.voice.channel.id}")
-            except:
-                pass
+        if f"{interaction.guild_id}" in reserved_guild:
+            for i in reserved_guild[f"{interaction.guild.id}"]:
+                channel.remove(i)
             await interaction.guild.voice_client.disconnect()
             await interaction.response.send_message("<:zunda:1277689238632267848> 退出するのだ",silent=True)
         else:
@@ -413,7 +422,7 @@ async def bye_command(interaction: discord.Interaction):
     
 @tree.command(name="force-leave",description="強制的にVCから退出するのだ（/byeが動作しなくなったときにのみ使用してください）")
 async def force_leave_command(interaction: discord.Interaction):
-    global channel
+    global channel,reserved_guild
     if interaction.guild.voice_client is None:
         await interaction.response.send_message("既に抜けてるのだ",silent=True)
     elif interaction.guild.voice_client:
@@ -422,6 +431,7 @@ async def force_leave_command(interaction: discord.Interaction):
             try:
                 channel.remove(f"{interaction.channel_id}")
                 channel.remove(f"{interaction.user.voice.channel.id}")
+                reserved_guild[f"{interaction.guild.id}"] = []
             except:
                 pass
             await interaction.guild.voice_client.disconnect()
