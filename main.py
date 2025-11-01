@@ -3,6 +3,7 @@ import asyncio
 import datetime
 import sys
 import os
+import json
 from discord import app_commands
 from config import TOKEN, APPLICATION_ID, logger, channel, voice_mode, voice_speed, reminde_json, reserved_guild
 from text_processor import guild_dict_translate, seikei
