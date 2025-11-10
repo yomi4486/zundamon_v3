@@ -1,3 +1,5 @@
+# 旧実装
+
 import os,discord,json,requests,io,re,asyncio,datetime,sys,logging
 from discord import app_commands
 from os.path import join, dirname

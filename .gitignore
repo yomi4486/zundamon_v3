@@ -6,3 +6,4 @@ bep-eng.dic
 *.log
 __pycache__
 issues/*
+.venv/
